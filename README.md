@@ -13,6 +13,11 @@ uv run pbites smoke-run
 uv run pytest
 ```
 
+## Ingesting media
+
+Media is acquired outside the repo; see [docs/acquiring-media.md](docs/acquiring-media.md),
+then `uv run pbites ingest-local data/media/<folder> --tier A --event-type floor`.
+
 ## Principles
 
 - Audio only; watchlist-driven (`config/watchlist.yaml`, Bioguide IDs).

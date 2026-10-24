@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import typer
 
 from political_bites import __version__
 from political_bites.config import Settings, load_watchlist
 from political_bites.db import connect, init_schema
+from political_bites.ingest import IngestError, find_media_folders, ingest_folder
 from political_bites.legislators import DATASETS, fetch_dataset, parse_people, upsert_people
+from political_bites.licensing import LicenseTier
 from political_bites.provenance import record_run
 
 app = typer.Typer(help="political-bites: curate politician audio clips.", no_args_is_help=True)
@@ -69,4 +73,37 @@ def load_legislators(refresh: bool = typer.Option(False, help="Re-download sourc
     for pid in missing:
         typer.echo(f"  not found: {pid}", err=True)
     if missing:
+        raise typer.Exit(1)
+
+
+@app.command("ingest-local")
+def ingest_local(
+    path: Path = typer.Argument(
+        ..., exists=True, file_okay=False, help="Media folder, or a folder of them."
+    ),
+    tier: LicenseTier | None = typer.Option(
+        None, help="License tier. First ingest defaults to C (strictest); re-ingest keeps it."
+    ),
+    event_type: str | None = typer.Option(None, help="e.g. floor, hearing, interview, speech."),
+    event_date: str | None = typer.Option(None, help="Date of the event, YYYY-MM-DD."),
+) -> None:
+    """Ingest locally downloaded audio (+ captions, info.json) into the database."""
+    settings = Settings()
+    con = connect(settings.db_path)
+    init_schema(con)
+    folders = find_media_folders(path)
+    if not folders:
+        typer.echo(f"No media folders with audio found under {path}", err=True)
+        raise typer.Exit(1)
+    failed = 0
+    for folder in folders:
+        try:
+            source_id = ingest_folder(
+                con, folder, tier=tier, event_type=event_type, event_date=event_date
+            )
+            typer.echo(f"ingested {source_id}  ({folder.name})")
+        except IngestError as exc:
+            failed += 1
+            typer.echo(f"skipped {folder.name}: {exc}", err=True)
+    if failed:
         raise typer.Exit(1)
