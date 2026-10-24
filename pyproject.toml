@@ -1,0 +1,42 @@
+[project]
+name = "political-bites"
+version = "0.1.0"
+description = "Human-in-the-loop pipeline and library of US politician audio clips for parody/commentary music."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.1",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+]
+
+[project.scripts]
+pbites = "political_bites.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+# Heavy audio/ML deps are added in Phase 1 as optional groups, e.g.:
+# asr = ["faster-whisper", "whisperx"]; audio = ["librosa", "pyloudnorm", "demucs"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/political_bites"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

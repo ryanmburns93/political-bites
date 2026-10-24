@@ -1,0 +1,5 @@
+# Politicians to harvest, keyed by Bioguide ID (https://bioguide.congress.gov).
+# Discovery only looks for people listed here.
+politicians: []
+#  - bioguide_id: X000000
+#    note: free-text reminder of why they're here
