@@ -57,6 +57,17 @@ DDL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS source_word (
+        source_id VARCHAR NOT NULL,
+        segment_idx INTEGER NOT NULL,
+        start_s DOUBLE NOT NULL,
+        end_s DOUBLE NOT NULL,
+        word VARCHAR NOT NULL,
+        probability DOUBLE,
+        model VARCHAR
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS source_speaker (
         source_id VARCHAR NOT NULL,
         diarization_label VARCHAR NOT NULL,

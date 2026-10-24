@@ -11,6 +11,13 @@ from political_bites.ingest import IngestError, find_media_folders, ingest_folde
 from political_bites.legislators import DATASETS, fetch_dataset, parse_people, upsert_people
 from political_bites.licensing import LicenseTier
 from political_bites.provenance import record_run
+from political_bites.transcribe import (
+    FasterWhisperTranscriber,
+    TranscribeError,
+    TranscribeResult,
+    default_threads,
+    transcribe_source,
+)
 
 app = typer.Typer(help="political-bites: curate politician audio clips.", no_args_is_help=True)
 
@@ -107,3 +114,66 @@ def ingest_local(
             typer.echo(f"skipped {folder.name}: {exc}", err=True)
     if failed:
         raise typer.Exit(1)
+
+
+def _hms(seconds: float) -> str:
+    s = int(round(seconds))
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}"
+
+
+@app.command("transcribe")
+def transcribe_cmd(
+    source_id: str = typer.Argument(..., help="source_id printed by ingest-local."),
+    start_min: float = typer.Option(0.0, help="Start offset in minutes."),
+    minutes: float | None = typer.Option(None, help="Length in minutes (default: to the end)."),
+    model: str = typer.Option("small.en", help="faster-whisper model, e.g. small.en, medium.en."),
+    threads: int = typer.Option(0, help="CPU threads (0 = about half the logical cores)."),
+    compute_type: str = typer.Option("int8", help="CTranslate2 compute type."),
+    chunk_min: float = typer.Option(10.0, help="Commit progress every N minutes."),
+) -> None:
+    """Transcribe a source to word-level timings (CPU). Start with --minutes 5 to benchmark."""
+    settings = Settings()
+    con = connect(settings.db_path)
+    init_schema(con)
+    transcriber = FasterWhisperTranscriber(
+        model, compute_type=compute_type, cpu_threads=threads or default_threads()
+    )
+    row = con.execute(
+        "SELECT duration_s FROM source_item WHERE source_id = ?", [source_id]
+    ).fetchone()
+    total_s = row[0] if row else None
+    state = {"audio": 0.0, "wall": 0.0}
+
+    def show(chunk: TranscribeResult) -> None:
+        state["audio"] += chunk.audio_s
+        state["wall"] += chunk.wall_s
+        speed = state["audio"] / state["wall"] if state["wall"] else 0.0
+        remaining = None
+        if total_s and speed:
+            remaining = max(0.0, (end_s or total_s) - chunk.end_s) / speed
+        eta = f", ~{_hms(remaining)} left" if remaining is not None else ""
+        typer.echo(
+            f"  {_hms(chunk.start_s)}-{_hms(chunk.end_s)}: {chunk.n_words} words, "
+            f"{speed:.2f}x real time{eta}"
+        )
+
+    end_s = None if minutes is None else (start_min + minutes) * 60
+    try:
+        result = transcribe_source(
+            con,
+            source_id,
+            transcriber,
+            start_s=start_min * 60,
+            end_s=end_s,
+            chunk_s=chunk_min * 60,
+            progress=show,
+        )
+    except TranscribeError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        f"{source_id}: {result.n_words} words from {_hms(result.start_s)} to "
+        f"{_hms(result.end_s)} in {_hms(result.wall_s)} ({result.speed:.2f}x real time)"
+    )
+    if total_s and result.speed:
+        typer.echo(f"Full recording ({_hms(total_s)}) would take ~{_hms(total_s / result.speed)}.")
