@@ -59,8 +59,8 @@ def fetch_dataset(name: str, cache_dir: Path, *, refresh: bool = False) -> str:
     resp = httpx.get(BASE_URL.format(name=name), timeout=120, follow_redirects=True)
     resp.raise_for_status()
     cache_dir.mkdir(parents=True, exist_ok=True)
-    text = resp.content.decode("utf-8")
-    cache.write_text(text, encoding="utf-8")
+    text = resp.content.decode("utf-8")  # validate before caching
+    cache.write_bytes(resp.content)  # exact upstream bytes; no platform newline translation
     return text
 
 
