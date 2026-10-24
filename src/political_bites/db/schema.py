@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import duckdb
@@ -141,8 +142,53 @@ def connect(db_path: Path | str) -> duckdb.DuckDBPyConnection:
     return duckdb.connect(str(db_path))
 
 
+_TABLE_DDL = {m.group(1): stmt for stmt in DDL if (m := re.search(r"EXISTS (\w+)", stmt))}
+
+# Tables whose key column was renamed bioguide_id -> politician_id.
+_RENAMED_BIOGUIDE = ("politician", "politician_term", "source_speaker", "clip")
+
+
+def _columns(con: duckdb.DuckDBPyConnection, table: str) -> list[str]:
+    rows = con.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = ? "
+        "ORDER BY ordinal_position",
+        [table],
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
+def _migrate_bioguide_rename(con: duckdb.DuckDBPyConnection) -> None:
+    """Rebuild tables created before the bioguide_id -> politician_id rename, keeping data.
+
+    DuckDB cannot rename a column that is part of a primary-key index, so the table is
+    copied aside, recreated from the current DDL, and refilled.
+    """
+    for table in _RENAMED_BIOGUIDE:
+        old_cols = _columns(con, table)
+        if "bioguide_id" not in old_cols or "politician_id" in old_cols:
+            continue
+        con.execute("BEGIN TRANSACTION")
+        try:
+            con.execute(f"CREATE TEMP TABLE _migrate_bak AS SELECT * FROM {table}")
+            con.execute(f"DROP TABLE {table}")
+            con.execute(_TABLE_DDL[table])
+            new_cols = _columns(con, table)
+            pairs = [("bioguide_id" if c == "politician_id" else c, c) for c in new_cols]
+            pairs = [(src, dst) for src, dst in pairs if src in old_cols]
+            con.execute(
+                f"INSERT INTO {table} ({', '.join(d for _, d in pairs)}) "
+                f"SELECT {', '.join(s for s, _ in pairs)} FROM _migrate_bak"
+            )
+            con.execute("DROP TABLE _migrate_bak")
+            con.execute("COMMIT")
+        except Exception:
+            con.execute("ROLLBACK")
+            raise
+
+
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     for stmt in DDL:
         con.execute(stmt)
+    _migrate_bioguide_rename(con)
     for stmt in MIGRATIONS:
         con.execute(stmt)
