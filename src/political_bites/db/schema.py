@@ -47,6 +47,15 @@ DDL = [
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS source_caption (
+        source_id VARCHAR NOT NULL,
+        idx INTEGER NOT NULL,
+        start_s DOUBLE NOT NULL,
+        end_s DOUBLE NOT NULL,
+        text VARCHAR NOT NULL
+    )
+    """,
+    """
     CREATE TABLE IF NOT EXISTS source_speaker (
         source_id VARCHAR NOT NULL,
         diarization_label VARCHAR NOT NULL,
@@ -117,6 +126,15 @@ DDL = [
 ]
 
 
+# Columns added after the first release; applied to pre-existing databases.
+MIGRATIONS = [
+    "ALTER TABLE source_item ADD COLUMN IF NOT EXISTS media_path VARCHAR",
+    "ALTER TABLE source_item ADD COLUMN IF NOT EXISTS duration_s DOUBLE",
+    "ALTER TABLE source_item ADD COLUMN IF NOT EXISTS caption_type VARCHAR",
+    "ALTER TABLE source_item ADD COLUMN IF NOT EXISTS channel_id VARCHAR",
+]
+
+
 def connect(db_path: Path | str) -> duckdb.DuckDBPyConnection:
     if str(db_path) != ":memory:":
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -125,4 +143,6 @@ def connect(db_path: Path | str) -> duckdb.DuckDBPyConnection:
 
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:
     for stmt in DDL:
+        con.execute(stmt)
+    for stmt in MIGRATIONS:
         con.execute(stmt)
