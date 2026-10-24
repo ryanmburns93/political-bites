@@ -139,7 +139,7 @@ def probe_duration(path: Path) -> float | None:
                 str(path),
             ],
             capture_output=True,
-            text=True,
+            encoding="utf-8",
             timeout=60,
             check=True,
         ).stdout.strip()
@@ -153,7 +153,7 @@ def _load_info(folder: Path) -> dict[str, Any]:
     if not paths:
         return {}
     try:
-        return json.loads(paths[0].read_text())
+        return json.loads(paths[0].read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise IngestError(f"Invalid JSON in {paths[0]}: {exc}") from exc
 
@@ -218,7 +218,7 @@ def ingest_folder(
     cues: list[Cue] = []
     caption_file = _find_captions(folder)
     if caption_file:
-        cues = parse_vtt(caption_file.read_text(errors="replace"))
+        cues = parse_vtt(caption_file.read_text(encoding="utf-8", errors="replace"))
     caption_type = detect_caption_type(info) if cues else None
     if cues and caption_type is None:
         caption_type = "unknown"

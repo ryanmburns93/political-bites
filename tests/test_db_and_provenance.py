@@ -46,5 +46,5 @@ def test_missing_watchlist_is_empty(tmp_path):
 
 def test_watchlist_loads(tmp_path):
     p = tmp_path / "w.yaml"
-    p.write_text("politicians:\n  - politician_id: S000148\n    note: example\n")
+    p.write_text("politicians:\n  - politician_id: S000148\n    note: example\n", encoding="utf-8")
     assert [e.politician_id for e in load_watchlist(p)] == ["S000148"]
