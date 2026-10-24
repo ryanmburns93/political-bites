@@ -48,7 +48,7 @@ def make_folder(root, name="20260721_abc123", *, captions=True, info=True):
     d.mkdir(parents=True)
     make_wav(d / "source.wav")
     if captions:
-        (d / "source.en.vtt").write_text(ROLLING_VTT)
+        (d / "source.en.vtt").write_text(ROLLING_VTT, encoding="utf-8")
     if info:
         (d / "source.info.json").write_text(
             json.dumps(
@@ -64,7 +64,8 @@ def make_folder(root, name="20260721_abc123", *, captions=True, info=True):
                     "subtitles": {},
                     "automatic_captions": {"en": [{"ext": "vtt"}]},
                 }
-            )
+            ),
+            encoding="utf-8",
         )
     return d
 
@@ -200,3 +201,17 @@ def test_cli_ingest_local_exit_codes(tmp_path, monkeypatch):
     make_folder(tmp_path / "media")
     result = runner.invoke(app, ["ingest-local", str(tmp_path / "media"), "--tier", "A"])
     assert result.exit_code == 0 and "youtube:abc123" in result.output
+
+
+def test_non_ascii_text_roundtrips(con, tmp_path):
+    """Regression: default Windows encoding (cp1252) cannot represent e.g. U+016B."""
+    d = make_folder(tmp_path)
+    (d / "source.en.vtt").write_text(
+        "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nAloha, Ūlupalakua\n", encoding="utf-8"
+    )
+    info = json.loads((d / "source.info.json").read_text(encoding="utf-8"))
+    info["title"] = "Ūlupalakua session"
+    (d / "source.info.json").write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
+    ingest_folder(con, d)
+    assert con.execute("SELECT title FROM source_item").fetchone() == ("Ūlupalakua session",)
+    assert con.execute("SELECT text FROM source_caption").fetchone() == ("Aloha, Ūlupalakua",)

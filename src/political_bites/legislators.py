@@ -52,12 +52,16 @@ def fetch_dataset(name: str, cache_dir: Path, *, refresh: bool = False) -> str:
     """Return the YAML text for a dataset, using a local cache."""
     cache = cache_dir / f"{name}.yaml"
     if cache.exists() and not refresh:
-        return cache.read_text()
+        try:
+            return cache.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            pass  # stale cache written by an older version in the system encoding; re-download
     resp = httpx.get(BASE_URL.format(name=name), timeout=120, follow_redirects=True)
     resp.raise_for_status()
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache.write_text(resp.text)
-    return resp.text
+    text = resp.content.decode("utf-8")  # validate before caching
+    cache.write_bytes(resp.content)  # exact upstream bytes; no platform newline translation
+    return text
 
 
 def _name(person: dict[str, Any]) -> str:

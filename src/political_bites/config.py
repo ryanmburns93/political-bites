@@ -32,5 +32,5 @@ def load_watchlist(path: Path) -> list[WatchlistEntry]:
     """Load the user-specified politician watchlist (Bioguide IDs)."""
     if not path.exists():
         return []
-    raw = yaml.safe_load(path.read_text()) or {}
+    raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     return [WatchlistEntry(**row) for row in raw.get("politicians", [])]
