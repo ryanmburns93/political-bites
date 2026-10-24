@@ -21,8 +21,10 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.6",
 ]
-# Heavy audio/ML deps are added in Phase 1 as optional groups, e.g.:
-# asr = ["faster-whisper", "whisperx"]; audio = ["librosa", "pyloudnorm", "demucs"]
+# Heavy audio/ML deps are optional groups (not installed by default or in CI):
+#   uv sync --group asr
+asr = ["faster-whisper>=1.1"]
+# Later phases: audio = ["librosa", "pyloudnorm", "demucs"]
 
 [build-system]
 requires = ["hatchling"]
