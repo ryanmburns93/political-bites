@@ -25,8 +25,15 @@ def record_run(
     run_id = uuid.uuid4().hex
     con.execute(
         "INSERT INTO pipeline_run VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'running', NULL)",
-        [run_id, stage, source_id, tool, tool_version, json.dumps(params or {}),
-         datetime.now(UTC).replace(tzinfo=None)],
+        [
+            run_id,
+            stage,
+            source_id,
+            tool,
+            tool_version,
+            json.dumps(params or {}),
+            datetime.now(UTC).replace(tzinfo=None),
+        ],
     )
     try:
         yield run_id
