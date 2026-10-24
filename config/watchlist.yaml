@@ -1,5 +1,10 @@
-# Politicians to harvest, keyed by Bioguide ID (https://bioguide.congress.gov).
-# Discovery only looks for people listed here.
-politicians: []
-#  - bioguide_id: X000000
-#    note: free-text reminder of why they're here
+# Politicians to harvest. IDs: Bioguide ID for members of Congress
+# (https://bioguide.congress.gov), or wd:<Wikidata QID> for people who never
+# served in Congress (e.g. presidents). Discovery only looks for people listed here.
+politicians:
+  - politician_id: J000299
+    note: Mike Johnson, Speaker of the House (R-LA)
+  - politician_id: O000172
+    note: Alexandria Ocasio-Cortez (D-NY)
+  - politician_id: wd:Q22686
+    note: Donald Trump, President (no floor footage; White House sources, Tier A-)
