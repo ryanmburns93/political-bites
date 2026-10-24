@@ -9,18 +9,19 @@ import duckdb
 DDL = [
     """
     CREATE TABLE IF NOT EXISTS politician (
-        bioguide_id VARCHAR PRIMARY KEY,
+        politician_id VARCHAR PRIMARY KEY,
         name VARCHAR NOT NULL,
         party VARCHAR,
         state VARCHAR,
         chamber VARCHAR,
         url VARCHAR,
+        external_ids VARCHAR,
         notes VARCHAR
     )
     """,
     """
     CREATE TABLE IF NOT EXISTS politician_term (
-        bioguide_id VARCHAR NOT NULL,
+        politician_id VARCHAR NOT NULL,
         role VARCHAR,
         chamber VARCHAR,
         party VARCHAR,
@@ -49,7 +50,7 @@ DDL = [
     CREATE TABLE IF NOT EXISTS source_speaker (
         source_id VARCHAR NOT NULL,
         diarization_label VARCHAR NOT NULL,
-        bioguide_id VARCHAR,
+        politician_id VARCHAR,
         role VARCHAR,
         name VARCHAR,
         outlet VARCHAR,
@@ -61,7 +62,7 @@ DDL = [
     CREATE TABLE IF NOT EXISTS clip (
         clip_id VARCHAR PRIMARY KEY,
         source_id VARCHAR NOT NULL,
-        bioguide_id VARCHAR,
+        politician_id VARCHAR,
         start_s DOUBLE NOT NULL,
         end_s DOUBLE NOT NULL,
         transcript VARCHAR,

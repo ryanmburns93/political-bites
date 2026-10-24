@@ -119,11 +119,11 @@ Anything below confidence threshold goes to the review queue; never auto-publish
 
 ## 4. Data model (Postgres/DuckDB)
 
-- `politician`: bioguide_id (PK), name, party (current), state, chamber, photo/URL, notes
-- `politician_term`: bioguide_id, role, chamber, party, start/end dates, committee roles (so party/position is correct *at clip date*, including party switches)
+- `politician`: politician_id (PK), name, party (current), state, chamber, photo/URL, notes
+- `politician_term`: politician_id, role, chamber, party, start/end dates, committee roles (so party/position is correct *at clip date*, including party switches)
 - `source_item`: source_id, platform, organization/outlet, url, title, original_publish_datetime, event_datetime, event_type (floor, hearing, interview, speech, debate, ad), license_tier, retrieved_at, file_hash, audio_fingerprint
-- `source_speaker`: source_id, diarization label, person (bioguide_id or null), role (politician/interviewer/witness/other), name, outlet, id_confidence, id_method
-- `clip`: clip_id, source_id, speaker (bioguide_id), start/end seconds, duration, transcript, transcript_confidence, context_before/after, license_tier, review_status, paths to raw/isolated files
+- `source_speaker`: source_id, diarization label, person (politician_id or null), role (politician/interviewer/witness/other), name, outlet, id_confidence, id_method
+- `clip`: clip_id, source_id, speaker (politician_id), start/end seconds, duration, transcript, transcript_confidence, context_before/after, license_tier, review_status, paths to raw/isolated files
 - `clip_audio_features`: see section 5
 - `clip_topic`: clip_id, topic (controlled vocabulary), confidence, method; plus free-form tags and linked bill IDs where applicable
 - `clip_stance` (optional, marked as model-generated): clip_id, subject, label, confidence

@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
 
 class WatchlistEntry(BaseModel):
-    bioguide_id: str
+    politician_id: str
     note: str = ""
 
 
